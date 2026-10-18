@@ -27,6 +27,8 @@ export class Limiter {
   private okSincePenalty = 0;
   /** Requests fail at once until then (a Retry-After too long to wait out). */
   blockedUntil = 0;
+  /** The start of the 429 body that set the block. */
+  blockedDetail = "";
 
   constructor(private readonly opts: LimiterOptions) {}
 

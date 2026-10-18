@@ -136,7 +136,7 @@ describe("retries", () => {
     expect(err).toBeInstanceOf(RateLimitedError);
     expect((err as RateLimitedError).until.getTime()).toBe(1_000_000 + 3_600_000);
     expect((err as RateLimitedError).detail).toBe("body");
-    await expect(f("https://api.example.com/b")).rejects.toBeInstanceOf(RateLimitedError);
+    await expect(f("https://api.example.com/b")).rejects.toMatchObject({ name: "RateLimitedError", detail: "body" });
     expect(s.sent).toHaveLength(1);
     c.t += 3_600_000;
     expect((await f("https://api.example.com/c")).status).toBe(200);

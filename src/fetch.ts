@@ -66,7 +66,7 @@ export class RateLimitedError extends Error {
   constructor(
     readonly host: string,
     readonly until: Date,
-    /** The start of the 429's body (the API's own reason), when there was one; empty for later calls during the block. */
+    /** The start of the 429's body (the API's own reason), on every call during the block. */
     readonly detail = "",
   ) {
     const mins = Math.max(1, Math.round((until.getTime() - Date.now()) / 60_000));
@@ -113,7 +113,7 @@ export function pacedFetch(opts: PacedFetchOptions = {}): PacedFetch {
     const jittered = (attempt: number) => Math.round(backoff[Math.min(attempt, backoff.length - 1)]! * (1 + 0.3 * random()));
 
     for (let attempt = 0; ; attempt++) {
-      if (limiter.blockedUntil > now()) throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil));
+      if (limiter.blockedUntil > now()) throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil), limiter.blockedDetail);
       const release = await limiter.acquire();
       try {
         init?.signal?.throwIfAborted();
@@ -147,8 +147,8 @@ export function pacedFetch(opts: PacedFetchOptions = {}): PacedFetch {
         if (!is429) return res;
         limiter.blockedUntil = now() + waitMs;
         opts.onEvent?.({ type: "blocked", host: url.hostname, url: url.href, status: 429, waitMs });
-        const detail = (await res.text().catch(() => "")).slice(0, 500);
-        throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil), detail);
+        limiter.blockedDetail = (await res.text().catch(() => "")).slice(0, 500);
+        throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil), limiter.blockedDetail);
       }
       if (attempt >= retries) return res;
       opts.onEvent?.({ type: "retry", host: url.hostname, url: url.href, status: res.status, waitMs });
