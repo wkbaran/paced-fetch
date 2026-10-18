@@ -135,6 +135,7 @@ describe("retries", () => {
     const err = await f("https://api.example.com/a").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(RateLimitedError);
     expect((err as RateLimitedError).until.getTime()).toBe(1_000_000 + 3_600_000);
+    expect((err as RateLimitedError).detail).toBe("body");
     await expect(f("https://api.example.com/b")).rejects.toBeInstanceOf(RateLimitedError);
     expect(s.sent).toHaveLength(1);
     c.t += 3_600_000;

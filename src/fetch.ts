@@ -66,6 +66,8 @@ export class RateLimitedError extends Error {
   constructor(
     readonly host: string,
     readonly until: Date,
+    /** The start of the 429's body (the API's own reason), when there was one; empty for later calls during the block. */
+    readonly detail = "",
   ) {
     const mins = Math.max(1, Math.round((until.getTime() - Date.now()) / 60_000));
     super(`${host} is rate-limiting requests until ${until.toISOString().slice(0, 16)}Z, about ${mins} min from now.`);
@@ -145,8 +147,8 @@ export function pacedFetch(opts: PacedFetchOptions = {}): PacedFetch {
         if (!is429) return res;
         limiter.blockedUntil = now() + waitMs;
         opts.onEvent?.({ type: "blocked", host: url.hostname, url: url.href, status: 429, waitMs });
-        await res.body?.cancel().catch(() => {});
-        throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil));
+        const detail = (await res.text().catch(() => "")).slice(0, 500);
+        throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil), detail);
       }
       if (attempt >= retries) return res;
       opts.onEvent?.({ type: "retry", host: url.hostname, url: url.href, status: res.status, waitMs });
