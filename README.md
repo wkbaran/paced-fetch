@@ -1,8 +1,20 @@
-# paced-fetch
+<div align="center">
+
+# Paced Fetch
+
+**A fetch that is polite to the APIs it calls.**
 
 ![npm](https://img.shields.io/npm/v/paced-fetch) ![Node 26+](https://img.shields.io/badge/node-26%2B-339933?logo=nodedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
+![Retry-After](https://img.shields.io/badge/429-Retry--After%20aware-orange)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-A `fetch` that is polite to the APIs it calls. Each API host gets a limiter (requests per window, requests in flight, a minimum gap), 429s are waited out the way the server asks, and every program that uses it is configured with the same environment variables.
+[Install](#install) · [Example](#example) · [What it does](#what-it-does) · [Environment variables](#environment-variables)
+
+</div>
+
+Each API host gets a limiter (requests per window, requests in flight, a minimum gap), 429s are waited out the way the server asks, and every program that uses it is configured with the same environment variables.
 
 It was written for MCP servers that read web APIs (Substack, Medium, Spotify, Deezer…), each of which had grown its own retry loop with its own rules. No dependencies.
 
