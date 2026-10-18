@@ -26,7 +26,7 @@ const res = await fetch("https://example.substack.com/api/v1/archive");
 | 5xx, network error | Retried for idempotent requests only (GET, HEAD, OPTIONS, PUT, DELETE, or what `isIdempotent` says, e.g. GraphQL reads) |
 | Anything else, or retries run out | The response is returned as is, so the caller's own error handling still runs |
 
-A timeout or abort from the caller's own `signal` is never retried. Request bodies are sent again on a retry, so pass strings, not streams.
+`timeoutMs` times out each attempt from when it's actually sent, and such a timeout is retried like a network error. A timeout or abort from the caller's own `signal` is never retried, and it also counts time spent waiting for the limiter, so prefer `timeoutMs`. Request bodies are sent again on a retry, so pass strings, not streams.
 
 Hosts not named in `hosts` each get their own limiter with the `defaults`. A `hosts` key is a hostname, or a domain that covers its subdomains (`deezer.com` covers `api.deezer.com`).
 

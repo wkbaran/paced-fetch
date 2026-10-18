@@ -30,6 +30,13 @@ export interface PaceOptions {
   maxRetryWaitMs?: number;
   /** Waits without Retry-After, by retry number; the last repeats (default 1 s, 3 s, 10 s). */
   backoffMs?: number[];
+  /**
+   * Timeout for each attempt, started when the request is actually sent (after
+   * any pacing wait). A request that times out this way is retried like a
+   * network error. Use it instead of an `AbortSignal.timeout` in `init`, which
+   * would also count the time spent waiting here.
+   */
+  timeoutMs?: number;
 }
 
 export interface PaceEvent {
@@ -106,12 +113,22 @@ export function pacedFetch(opts: PacedFetchOptions = {}): PacedFetch {
     for (let attempt = 0; ; attempt++) {
       if (limiter.blockedUntil > now()) throw new RateLimitedError(url.hostname, new Date(limiter.blockedUntil));
       const release = await limiter.acquire();
-      let res: Response;
       try {
-        res = await base(input, init);
+        init?.signal?.throwIfAborted();
       } catch (err) {
         release();
-        if (!idempotent || attempt >= retries || isAbort(err)) throw err;
+        throw err;
+      }
+      const timeout = pace.timeoutMs ? AbortSignal.timeout(pace.timeoutMs) : undefined;
+      const signal = timeout && init?.signal ? AbortSignal.any([init.signal, timeout]) : (timeout ?? init?.signal ?? undefined);
+      let res: Response;
+      try {
+        res = await base(input, signal ? { ...init, signal } : init);
+      } catch (err) {
+        release();
+        // The caller's own abort or timeout is final; ours (timeoutMs) counts as a network error.
+        const ours = Boolean(timeout?.aborted) && !init?.signal?.aborted;
+        if (!idempotent || attempt >= retries || (isAbort(err) && !ours)) throw err;
         const waitMs = jittered(attempt);
         opts.onEvent?.({ type: "retry", host: url.hostname, url: url.href, error: err instanceof Error ? err.message : String(err), waitMs });
         await sleep(waitMs);

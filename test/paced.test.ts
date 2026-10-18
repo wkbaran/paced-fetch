@@ -104,6 +104,23 @@ describe("retries", () => {
     expect((await f("https://api.example.com/graphql", { method: "POST", body: "{}" })).status).toBe(200);
   });
 
+  it("times out each attempt itself, and retries its own timeout", async () => {
+    let calls = 0;
+    const base: FetchLike = (_input, init) =>
+      new Promise((resolve, reject) => {
+        if (++calls === 2) return resolve(new Response("ok"));
+        init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+      });
+    const f = pacedFetch({ fetch: base, defaults: { timeoutMs: 20, backoffMs: [1] } });
+    expect((await f("https://api.example.com/")).status).toBe(200);
+    expect(calls).toBe(2);
+    // The caller's abort isn't retried.
+    const ctrl = new AbortController();
+    const p = pacedFetch({ fetch: (_i, init) => new Promise((_r, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason))), defaults: { timeoutMs: 1000 } })("https://api.example.com/", { signal: ctrl.signal });
+    ctrl.abort();
+    await expect(p).rejects.toMatchObject({ name: "AbortError" });
+  });
+
   it("retries a network error on a GET", async () => {
     const c = clock();
     const s = script([new TypeError("ECONNRESET"), 200]);
