@@ -100,7 +100,7 @@ describe("retries", () => {
   it("lets the caller say which requests are safe to retry (e.g. GraphQL reads)", async () => {
     const c = clock();
     const s = script([502, 200]);
-    const f = pacedFetch({ fetch: s.make(c), isIdempotent: (m, u) => m === "GET" || u.pathname === "/graphql", now: c.now, sleep: c.sleep });
+    const f = pacedFetch({ fetch: s.make(c), isIdempotent: (m, u, init) => m === "GET" || (u.pathname === "/graphql" && !String(init?.body).includes("mutation")), now: c.now, sleep: c.sleep });
     expect((await f("https://api.example.com/graphql", { method: "POST", body: "{}" })).status).toBe(200);
   });
 

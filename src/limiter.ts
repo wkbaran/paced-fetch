@@ -55,8 +55,11 @@ export class Limiter {
 
   private async waitForStart(): Promise<void> {
     const sleep = this.opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+    // A finished sleep counts as the time it was for, even if the clock disagrees
+    // (an injected sleep in tests), so the loop always ends.
+    let slept = -Infinity;
     for (;;) {
-      const now = this.now;
+      const now = Math.max(this.now, slept);
       const rate = this.opts.rate;
       if (rate) this.starts = this.starts.filter((t) => now - t < rate.perMs);
       const gap = (this.opts.minGapMs ?? 0) + this.penaltyMs;
@@ -68,6 +71,7 @@ export class Limiter {
         return;
       }
       await sleep(wait);
+      slept = now + wait;
     }
   }
 

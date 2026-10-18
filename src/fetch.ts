@@ -54,8 +54,8 @@ export interface PacedFetchOptions {
   defaults?: PaceOptions;
   /** Per host: a hostname ("api.deezer.com") or a domain that covers its subdomains ("deezer.com"). */
   hosts?: Record<string, PaceOptions>;
-  /** Whether 5xx and network errors may be retried; default: GET, HEAD, OPTIONS, PUT, DELETE. */
-  isIdempotent?: (method: string, url: URL) => boolean;
+  /** Whether 5xx and network errors may be retried; default: GET, HEAD, OPTIONS, PUT, DELETE. `init` is the request's, e.g. to tell a GraphQL query from a mutation. */
+  isIdempotent?: (method: string, url: URL, init?: RequestInit) => boolean;
   onEvent?: (e: PaceEvent) => void;
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
@@ -103,7 +103,7 @@ export function pacedFetch(opts: PacedFetchOptions = {}): PacedFetch {
   const paced = (async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
-    const idempotent = opts.isIdempotent ? opts.isIdempotent(method, url) : IDEMPOTENT.has(method);
+    const idempotent = opts.isIdempotent ? opts.isIdempotent(method, url, init) : IDEMPOTENT.has(method);
     const { limiter, pace } = forHost(url.hostname);
     const retries = pace.retries ?? 3;
     const maxWait = pace.maxRetryWaitMs ?? 60_000;
