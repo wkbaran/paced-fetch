@@ -1,8 +1,20 @@
 # paced-fetch
 
+![npm](https://img.shields.io/npm/v/paced-fetch) ![Node 26+](https://img.shields.io/badge/node-26%2B-339933?logo=nodedotjs&logoColor=white)
+
 A `fetch` that is polite to the APIs it calls. Each API host gets a limiter (requests per window, requests in flight, a minimum gap), 429s are waited out the way the server asks, and every program that uses it is configured with the same environment variables.
 
 It was written for MCP servers that read web APIs (Substack, Medium, Spotify, Deezer…), each of which had grown its own retry loop with its own rules. No dependencies.
+
+## Install
+
+Published on npm as [paced-fetch](https://www.npmjs.com/package/paced-fetch):
+
+```sh
+npm install paced-fetch
+```
+
+## Example
 
 ```ts
 import { pacedFetch, paceFromEnv } from "paced-fetch";
